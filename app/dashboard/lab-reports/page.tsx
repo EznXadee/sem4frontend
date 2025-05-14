@@ -1,18 +1,40 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Filter, Download, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { useAuth } from "@/app/context/AuthContext"
-import { toast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+} from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/app/context/AuthContext";
+import { toast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +42,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -28,51 +50,53 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface LabReport {
-  id: string
-  patientId: string
-  patientName: string
-  testType: string
-  date: string
-  lab: string
-  requestedBy: string
-  status: 'Completed' | 'Pending' | 'In Progress' | 'Cancelled'
+  id: string;
+  patientId: string;
+  patientName: string;
+  testType: string;
+  date: string;
+  lab: string;
+  requestedBy: string;
+  status: "Completed" | "Pending" | "In Progress" | "Cancelled";
   results?: Array<{
-    test: string
-    value: string
-    unit: string
-    normalRange: string
-    status: 'Normal' | 'Abnormal' | 'Critical'
-  }>
-  notes?: string
+    test: string;
+    value: string;
+    unit: string;
+    normalRange: string;
+    status: "Normal" | "Abnormal" | "Critical";
+  }>;
+  notes?: string;
 }
 
 interface Patient {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 export default function LabReportsPage() {
-  const { user } = useAuth()
-  const [reports, setReports] = useState<LabReport[]>([])
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  
+  const { user } = useAuth();
+  const [reports, setReports] = useState<LabReport[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Modal states
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   // Selected items
-  const [selectedReport, setSelectedReport] = useState<LabReport | null>(null)
-  const [reportToDelete, setReportToDelete] = useState<LabReport | null>(null)
-  
+  const [selectedReport, setSelectedReport] = useState<LabReport | null>(null);
+  const [reportToDelete, setReportToDelete] = useState<LabReport | null>(null);
+
   // Form states
   const [formData, setFormData] = useState({
     patientId: "",
@@ -80,94 +104,103 @@ export default function LabReportsPage() {
     lab: "",
     date: new Date().toISOString().slice(0, 10),
     notes: "",
-    status: "Pending"
-  })
+    status: "Pending",
+  });
   const [results, setResults] = useState([
-    { test: "", value: "", unit: "", normalRange: "", status: "Normal" }
-  ])
-  
-  // Loading states
-  const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+    { test: "", value: "", unit: "", normalRange: "", status: "Normal" },
+  ]);
 
-  const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '')
-  const reportsPerPage = 10
+  // Loading states
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const API_URL = (
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  ).replace(/\/$/, "");
+  const reportsPerPage = 10;
 
   useEffect(() => {
-    fetchReports()
-    fetchPatients()
-  }, [currentPage])
+    fetchReports();
+    fetchPatients();
+  }, [currentPage]);
 
   const fetchPatients = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/patients`, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+          "Content-Type": "application/json",
+        },
+      });
       if (response.ok) {
-        const data = await response.json()
-        setPatients(data)
+        const data = await response.json();
+        setPatients(data);
       }
     } catch (error) {
-      console.error('Error fetching patients:', error)
+      console.error("Error fetching patients:", error);
     }
-  }
+  };
 
   const fetchReports = async () => {
     try {
-      setLoading(true)
-      const token = localStorage.getItem('token')
-      
+      setLoading(true);
+      const token = localStorage.getItem("token");
+
       if (!token) {
         toast({
           title: "Authentication Required",
           description: "Please login to view lab reports",
-          variant: "destructive"
-        })
-        window.location.href = '/login'
-        return
+          variant: "destructive",
+        });
+        window.location.href = "/login";
+        return;
       }
 
-      const response = await fetch(`${API_URL}/api/lab-reports?page=${currentPage}&limit=${reportsPerPage}`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `${API_URL}/api/lab-reports?page=${currentPage}&limit=${reportsPerPage}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      })
+      );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json()
-      setReports(data.reports || data)
-      setTotalPages(data.totalPages || Math.ceil((data.total || data.length) / reportsPerPage))
+      const data = await response.json();
+      setReports(data.reports || data);
+      setTotalPages(
+        data.totalPages ||
+          Math.ceil((data.total || data.length) / reportsPerPage)
+      );
     } catch (error) {
-      console.error('Error fetching lab reports:', error)
+      console.error("Error fetching lab reports:", error);
       toast({
         title: "Error",
         description: "Failed to fetch lab reports. Please try again.",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const filteredReports = reports.filter(report =>
-    report.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.testType.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredReports = reports.filter(
+    (report) =>
+      report.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.testType.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value)
-    setCurrentPage(1)
-  }
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   const resetForm = () => {
     setFormData({
@@ -176,220 +209,342 @@ export default function LabReportsPage() {
       lab: "",
       date: new Date().toISOString().slice(0, 10),
       notes: "",
-      status: "Pending"
-    })
+      status: "Pending",
+    });
     setResults([
-      { test: "", value: "", unit: "", normalRange: "", status: "Normal" }
-    ])
-  }
+      { test: "", value: "", unit: "", normalRange: "", status: "Normal" },
+    ]);
+  };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }))
-  }
+      [name]: value,
+    }));
+  };
 
   const handleResultChange = (index, field, value) => {
-    const updatedResults = [...results]
-    updatedResults[index][field] = value
-    setResults(updatedResults)
-  }
+    const updatedResults = [...results];
+    updatedResults[index][field] = value;
+    setResults(updatedResults);
+  };
 
   const addResult = () => {
-    setResults([...results, { test: "", value: "", unit: "", normalRange: "", status: "Normal" }])
-  }
+    setResults([
+      ...results,
+      { test: "", value: "", unit: "", normalRange: "", status: "Normal" },
+    ]);
+  };
 
   const removeResult = (index) => {
-    const updatedResults = results.filter((_, i) => i !== index)
-    setResults(updatedResults)
-  }
+    const updatedResults = results.filter((_, i) => i !== index);
+    setResults(updatedResults);
+  };
 
   const handleCreate = async () => {
     try {
-      setCreating(true)
-      const token = localStorage.getItem('token')
-      
+      setCreating(true);
+      const token = localStorage.getItem("token");
+
       const response = await fetch(`${API_URL}/api/lab-reports`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...formData,
-          results
-        })
-      })
+          results,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to create lab report')
+        throw new Error("Failed to create lab report");
       }
 
       toast({
         title: "Success",
         description: "Lab report created successfully",
-      })
+      });
 
-      setIsCreateModalOpen(false)
-      resetForm()
-      fetchReports()
+      setIsCreateModalOpen(false);
+      resetForm();
+      fetchReports();
     } catch (error) {
-      console.error('Error creating lab report:', error)
+      console.error("Error creating lab report:", error);
       toast({
         title: "Error",
         description: "Failed to create lab report",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      });
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
   const handleUpdate = async () => {
-    if (!selectedReport) return
+    if (!selectedReport) return;
 
     try {
-      setEditing(true)
-      const token = localStorage.getItem('token')
-      
-      const response = await fetch(`${API_URL}/api/lab-reports/${selectedReport.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...formData,
-          results
-        })
-      })
+      setEditing(true);
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${API_URL}/api/lab-reports/${selectedReport.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            results,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to update lab report')
+        throw new Error("Failed to update lab report");
       }
 
       toast({
         title: "Success",
         description: "Lab report updated successfully",
-      })
+      });
 
-      setIsEditModalOpen(false)
-      fetchReports()
+      setIsEditModalOpen(false);
+      fetchReports();
     } catch (error) {
-      console.error('Error updating lab report:', error)
+      console.error("Error updating lab report:", error);
       toast({
         title: "Error",
         description: "Failed to update lab report",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      });
     } finally {
-      setEditing(false)
+      setEditing(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!reportToDelete) return
+    if (!reportToDelete) return;
 
     try {
-      setDeleting(true)
-      const token = localStorage.getItem('token')
-      
-      const response = await fetch(`${API_URL}/api/lab-reports/${reportToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      setDeleting(true);
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${API_URL}/api/lab-reports/${reportToDelete.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      })
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to delete report')
+        throw new Error("Failed to delete report");
       }
 
       toast({
         title: "Success",
         description: "Lab report deleted successfully",
-      })
+      });
 
-      fetchReports()
-      setIsDeleteDialogOpen(false)
-      setReportToDelete(null)
+      fetchReports();
+      setIsDeleteDialogOpen(false);
+      setReportToDelete(null);
     } catch (error) {
-      console.error('Error deleting report:', error)
+      console.error("Error deleting report:", error);
       toast({
         title: "Error",
         description: "Failed to delete report",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      });
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
   const downloadReport = async (reportId: string) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/api/lab-reports/${reportId}/download`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_URL}/api/lab-reports/${reportId}/download`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to download report')
+        throw new Error("Failed to download report");
       }
-      
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `lab-report-${reportId}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+
+      // Parse the JSON data
+      const reportData = await response.json();
+
+      // Create a new PDF document
+      const pdf = new jsPDF();
+
+      // Add title
+      pdf.setFontSize(20);
+      pdf.text("Laboratory Report", 105, 15, { align: "center" });
+
+      // Add hospital/clinic logo or name
+      pdf.setFontSize(12);
+      pdf.text("EZN Healthcare System", 105, 25, { align: "center" });
+
+      // Add report info
+      pdf.setFontSize(11);
+      pdf.text(`Report ID: ${reportData.id}`, 14, 40);
+      pdf.text(
+        `Date: ${new Date(reportData.date).toLocaleDateString()}`,
+        14,
+        47
+      );
+      pdf.text(
+        `Generated: ${
+          reportData.generatedOn || new Date().toLocaleDateString()
+        }`,
+        14,
+        54
+      );
+
+      // Add patient info
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Patient Information", 14, 65);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Name: ${reportData.patientName}`, 14, 72);
+      pdf.text(`Patient ID: ${reportData.patientId}`, 14, 79);
+
+      // Add test information
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Test Information", 14, 90);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Test Type: ${reportData.testType}`, 14, 97);
+      pdf.text(`Laboratory: ${reportData.lab}`, 14, 104);
+      pdf.text(`Requested By: ${reportData.requestedBy}`, 14, 111);
+      pdf.text(`Status: ${reportData.status}`, 14, 118);
+
+      // Add test results if available
+      if (reportData.results && reportData.results.length > 0) {
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Test Results", 14, 130);
+
+        const tableData = reportData.results.map((result: any) => [
+          result.test,
+          result.value,
+          result.unit,
+          result.normalRange,
+          result.status,
+        ]);
+
+        // Use the imported autoTable function
+        autoTable(pdf, {
+          startY: 135,
+          head: [["Test", "Value", "Unit", "Normal Range", "Status"]],
+          body: tableData,
+          theme: "striped",
+          headStyles: { fillColor: [41, 128, 185] },
+          styles: {
+            textColor: [50, 50, 50],
+            fontSize: 10,
+          },
+          columnStyles: {
+            4: {
+              // Color the status column based on result
+              fontStyle: "bold",
+              // @ts-ignore - Dynamic cell coloring based on value
+              textColor: (cell: any) => {
+                const status = cell.raw?.toString() || "";
+                if (status === "Normal") return [46, 204, 113];
+                if (status === "Abnormal") return [230, 126, 34];
+                if (status === "Critical") return [231, 76, 60];
+                return [50, 50, 50];
+              },
+            },
+          },
+        });
+      }
+
+      // Add notes if available
+      if (reportData.notes) {
+        // Get the final Y position after the table
+        const finalY = (pdf as any).lastAutoTable?.finalY + 10 || 140;
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Notes", 14, finalY);
+        pdf.setFont("helvetica", "normal");
+
+        const splitNotes = pdf.splitTextToSize(reportData.notes, 180);
+        pdf.text(splitNotes, 14, finalY + 7);
+      }
+
+      // Add footer
+      // @ts-ignore - internal is available on jsPDF instance
+      const pageCount = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.text(
+          "This is an electronically generated report and does not require a signature.",
+          105,
+          285,
+          { align: "center" }
+        );
+        pdf.text(`Page ${i} of ${pageCount}`, 105, 290, { align: "center" });
+      }
+
+      // Save the PDF
+      pdf.save(`lab-report-${reportId}.pdf`);
     } catch (error) {
-      console.error('Error downloading report:', error)
+      console.error("Error downloading report:", error);
       toast({
         title: "Error",
         description: "Failed to download report",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   const handleEdit = (report: LabReport) => {
-    setSelectedReport(report)
+    setSelectedReport(report);
     setFormData({
       patientId: report.patientId,
       type: report.testType,
       lab: report.lab,
       date: report.date.slice(0, 10),
       notes: report.notes || "",
-      status: report.status
-    })
-    setResults(report.results || [])
-    setIsEditModalOpen(true)
-  }
+      status: report.status,
+    });
+    setResults(report.results || []);
+    setIsEditModalOpen(true);
+  };
 
   const handleView = (report: LabReport) => {
-    setSelectedReport(report)
-    setIsViewModalOpen(true)
-  }
+    setSelectedReport(report);
+    setIsViewModalOpen(true);
+  };
 
   const handleDeleteClick = (report: LabReport) => {
-    setReportToDelete(report)
-    setIsDeleteDialogOpen(true)
-  }
+    setReportToDelete(report);
+    setIsDeleteDialogOpen(true);
+  };
 
   const handleCreateClick = () => {
-    resetForm()
-    setIsCreateModalOpen(true)
-  }
+    resetForm();
+    setIsCreateModalOpen(true);
+  };
 
-  const startIndex = (currentPage - 1) * reportsPerPage
-  const endIndex = Math.min(startIndex + reportsPerPage, filteredReports.length)
-  const currentReports = filteredReports.slice(startIndex, endIndex)
+  const startIndex = (currentPage - 1) * reportsPerPage;
+  const endIndex = Math.min(
+    startIndex + reportsPerPage,
+    filteredReports.length
+  );
+  const currentReports = filteredReports.slice(startIndex, endIndex);
 
   return (
     <div className="flex flex-col gap-6">
@@ -401,10 +556,10 @@ export default function LabReportsPage() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full max-w-sm items-center space-x-2">
-          <Input 
-            type="search" 
-            placeholder="Search lab reports..." 
-            className="w-full" 
+          <Input
+            type="search"
+            placeholder="Search lab reports..."
+            className="w-full"
             value={searchTerm}
             onChange={handleSearchChange}
           />
@@ -418,7 +573,11 @@ export default function LabReportsPage() {
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Button className="bg-teal-600 hover:bg-teal-700" size="sm" onClick={handleCreateClick}>
+          <Button
+            className="bg-teal-600 hover:bg-teal-700"
+            size="sm"
+            onClick={handleCreateClick}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create Report
           </Button>
@@ -453,16 +612,28 @@ export default function LabReportsPage() {
                     <TableCell className="font-medium">{report.id}</TableCell>
                     <TableCell>{report.patientName}</TableCell>
                     <TableCell>{report.testType}</TableCell>
-                    <TableCell>{report.date ? new Date(report.date).toLocaleDateString() : ''}</TableCell>
+                    <TableCell>
+                      {report.date
+                        ? new Date(report.date).toLocaleDateString()
+                        : ""}
+                    </TableCell>
                     <TableCell>{report.lab}</TableCell>
                     <TableCell>{report.requestedBy}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={report.status === "Completed" ? "default" : "secondary"}
+                        variant={
+                          report.status === "Completed"
+                            ? "default"
+                            : "secondary"
+                        }
                         className={
-                          report.status === "Completed" ? "bg-green-500" : 
-                          report.status === "Pending" ? "bg-yellow-500" :
-                          report.status === "In Progress" ? "bg-blue-500" : ""
+                          report.status === "Completed"
+                            ? "bg-green-500"
+                            : report.status === "Pending"
+                            ? "bg-yellow-500"
+                            : report.status === "In Progress"
+                            ? "bg-blue-500"
+                            : ""
                         }
                       >
                         {report.status}
@@ -487,12 +658,14 @@ export default function LabReportsPage() {
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => downloadReport(report.id)}>
+                          <DropdownMenuItem
+                            onClick={() => downloadReport(report.id)}
+                          >
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-red-600"
                             onClick={() => handleDeleteClick(report)}
                           >
@@ -518,20 +691,23 @@ export default function LabReportsPage() {
 
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="text-sm text-gray-500">
-          Showing <span className="font-medium">{filteredReports.length > 0 ? startIndex + 1 : 0}</span> to{" "}
-          <span className="font-medium">{endIndex}</span> of{" "}
+          Showing{" "}
+          <span className="font-medium">
+            {filteredReports.length > 0 ? startIndex + 1 : 0}
+          </span>{" "}
+          to <span className="font-medium">{endIndex}</span> of{" "}
           <span className="font-medium">{filteredReports.length}</span> results
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => setCurrentPage(currentPage - 1)}
           disabled={currentPage === 1}
         >
           Previous
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => setCurrentPage(currentPage + 1)}
           disabled={currentPage === totalPages || totalPages === 0}
@@ -553,9 +729,11 @@ export default function LabReportsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="create-patient">Patient</Label>
-                <Select 
-                  value={formData.patientId} 
-                  onValueChange={(value) => handleInputChange({ target: { name: 'patientId', value } })}
+                <Select
+                  value={formData.patientId}
+                  onValueChange={(value) =>
+                    handleInputChange({ target: { name: "patientId", value } })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select patient" />
@@ -618,7 +796,9 @@ export default function LabReportsPage() {
                     <Label>Test Name</Label>
                     <Input
                       value={result.test}
-                      onChange={(e) => handleResultChange(index, 'test', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "test", e.target.value)
+                      }
                       placeholder="e.g., Hemoglobin"
                     />
                   </div>
@@ -626,7 +806,9 @@ export default function LabReportsPage() {
                     <Label>Value</Label>
                     <Input
                       value={result.value}
-                      onChange={(e) => handleResultChange(index, 'value', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "value", e.target.value)
+                      }
                       placeholder="e.g., 13.5"
                     />
                   </div>
@@ -634,7 +816,9 @@ export default function LabReportsPage() {
                     <Label>Unit</Label>
                     <Input
                       value={result.unit}
-                      onChange={(e) => handleResultChange(index, 'unit', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "unit", e.target.value)
+                      }
                       placeholder="e.g., g/dL"
                     />
                   </div>
@@ -642,15 +826,19 @@ export default function LabReportsPage() {
                     <Label>Normal Range</Label>
                     <Input
                       value={result.normalRange}
-                      onChange={(e) => handleResultChange(index, 'normalRange', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "normalRange", e.target.value)
+                      }
                       placeholder="e.g., 12-16"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select 
-                      value={result.status} 
-                      onValueChange={(value) => handleResultChange(index, 'status', value)}
+                    <Select
+                      value={result.status}
+                      onValueChange={(value) =>
+                        handleResultChange(index, "status", value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -664,9 +852,9 @@ export default function LabReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>&nbsp;</Label>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => removeResult(index)}
                       disabled={results.length === 1}
                     >
@@ -688,11 +876,8 @@ export default function LabReportsPage() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={creating}
-            >
-              {creating ? 'Creating...' : 'Create Lab Report'}
+            <Button onClick={handleCreate} disabled={creating}>
+              {creating ? "Creating..." : "Create Lab Report"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -739,9 +924,11 @@ export default function LabReportsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(value) => handleInputChange({ target: { name: 'status', value } })}
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) =>
+                    handleInputChange({ target: { name: "status", value } })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -772,35 +959,45 @@ export default function LabReportsPage() {
                     <Label>Test Name</Label>
                     <Input
                       value={result.test}
-                      onChange={(e) => handleResultChange(index, 'test', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "test", e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Value</Label>
                     <Input
                       value={result.value}
-                      onChange={(e) => handleResultChange(index, 'value', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "value", e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Unit</Label>
                     <Input
                       value={result.unit}
-                      onChange={(e) => handleResultChange(index, 'unit', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "unit", e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Normal Range</Label>
                     <Input
                       value={result.normalRange}
-                      onChange={(e) => handleResultChange(index, 'normalRange', e.target.value)}
+                      onChange={(e) =>
+                        handleResultChange(index, "normalRange", e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select 
-                      value={result.status} 
-                      onValueChange={(value) => handleResultChange(index, 'status', value)}
+                    <Select
+                      value={result.status}
+                      onValueChange={(value) =>
+                        handleResultChange(index, "status", value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -814,9 +1011,9 @@ export default function LabReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>&nbsp;</Label>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => removeResult(index)}
                       disabled={results.length === 1}
                     >
@@ -838,11 +1035,8 @@ export default function LabReportsPage() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleUpdate}
-              disabled={editing}
-            >
-              {editing ? 'Saving...' : 'Save Changes'}
+            <Button onClick={handleUpdate} disabled={editing}>
+              {editing ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -876,16 +1070,26 @@ export default function LabReportsPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Date</p>
-                    <p className="font-medium">{new Date(selectedReport.date).toLocaleDateString()}</p>
+                    <p className="font-medium">
+                      {new Date(selectedReport.date).toLocaleDateString()}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Status</p>
                     <Badge
-                      variant={selectedReport.status === "Completed" ? "default" : "secondary"}
+                      variant={
+                        selectedReport.status === "Completed"
+                          ? "default"
+                          : "secondary"
+                      }
                       className={
-                        selectedReport.status === "Completed" ? "bg-green-500" : 
-                        selectedReport.status === "Pending" ? "bg-yellow-500" :
-                        selectedReport.status === "In Progress" ? "bg-blue-500" : ""
+                        selectedReport.status === "Completed"
+                          ? "bg-green-500"
+                          : selectedReport.status === "Pending"
+                          ? "bg-yellow-500"
+                          : selectedReport.status === "In Progress"
+                          ? "bg-blue-500"
+                          : ""
                       }
                     >
                       {selectedReport.status}
@@ -893,7 +1097,7 @@ export default function LabReportsPage() {
                   </div>
                 </div>
               </div>
-              
+
               {selectedReport.results && selectedReport.results.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-semibold">Test Results</h3>
@@ -910,15 +1114,27 @@ export default function LabReportsPage() {
                       {selectedReport.results.map((result, index) => (
                         <TableRow key={index}>
                           <TableCell>{result.test}</TableCell>
-                          <TableCell>{result.value} {result.unit}</TableCell>
-                          <TableCell>{result.normalRange} {result.unit}</TableCell>
                           <TableCell>
-                            <Badge 
-                              variant={result.status === "Normal" ? "default" : "destructive"}
+                            {result.value} {result.unit}
+                          </TableCell>
+                          <TableCell>
+                            {result.normalRange} {result.unit}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                result.status === "Normal"
+                                  ? "default"
+                                  : "destructive"
+                              }
                               className={
-                                result.status === "Normal" ? "bg-green-500" : 
-                                result.status === "Abnormal" ? "bg-orange-500" :
-                                result.status === "Critical" ? "bg-red-500" : ""
+                                result.status === "Normal"
+                                  ? "bg-green-500"
+                                  : result.status === "Abnormal"
+                                  ? "bg-orange-500"
+                                  : result.status === "Critical"
+                                  ? "bg-red-500"
+                                  : ""
                               }
                             >
                               {result.status}
@@ -930,7 +1146,7 @@ export default function LabReportsPage() {
                   </Table>
                 </div>
               )}
-              
+
               {selectedReport.notes && (
                 <div className="space-y-4">
                   <h3 className="font-semibold">Notes</h3>
@@ -940,17 +1156,14 @@ export default function LabReportsPage() {
             </div>
           )}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsViewModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
               Close
             </Button>
             <Button
               onClick={() => {
-                setIsViewModalOpen(false)
+                setIsViewModalOpen(false);
                 if (selectedReport) {
-                  handleEdit(selectedReport)
+                  handleEdit(selectedReport);
                 }
               }}
             >
@@ -966,7 +1179,8 @@ export default function LabReportsPage() {
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this lab report? This action cannot be undone.
+              Are you sure you want to delete this lab report? This action
+              cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -984,8 +1198,8 @@ export default function LabReportsPage() {
             >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDelete}
               disabled={deleting}
             >
@@ -995,12 +1209,12 @@ export default function LabReportsPage() {
                   Deleting...
                 </>
               ) : (
-                'Delete Report'
+                "Delete Report"
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
