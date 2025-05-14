@@ -101,7 +101,7 @@ interface AuthUser {
 
 export default function PatientPortalPage() {
   return (
-    <ProtectedRoute allowedRoles={["patient"] as string[]}>
+    <ProtectedRoute allowedRoles={["patient", "doctor", "admin"]}>
       <PatientPortalContent />
     </ProtectedRoute>
   );
