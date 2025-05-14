@@ -1,79 +1,90 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Shield } from "lucide-react"
-import { toast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleLogin = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       // Connect to the backend API
-      const response = await fetch('http://localhost:5000/api/users/login', {
-        method: 'POST',
+      const response = await fetch("http://localhost:5000/api/users/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
         // Store user data and token in localStorage
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('user', JSON.stringify({
-          id: data._id,
-          name: `${data.firstName} ${data.lastName}`,
-          email: data.email,
-          role: data.role,
-          patientId: data.patientId
-        }))
+        localStorage.setItem("token", data.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: data._id,
+            name: `${data.firstName} ${data.lastName}`,
+            email: data.email,
+            role: data.role,
+            patientId: data.patientId,
+          })
+        );
 
         toast({
           title: "Login Successful",
           description: `Welcome back, ${data.firstName} ${data.lastName}!`,
-        })
+        });
 
         // Redirect based on user role
         if (data.role === "doctor" || data.role === "admin") {
-          router.push("/dashboard")
+          router.push("/dashboard");
         } else if (data.role === "patient") {
-          router.push(`/patient-portal/${data.patientId}`)
+          router.push(`/patient-portal/${data.patientId}`);
         }
       } else {
         toast({
           title: "Login Failed",
-          description: data.message || "Invalid email or password. Please try again.",
+          description:
+            data.message || "Invalid email or password. Please try again.",
           variant: "destructive",
-        })
+        });
       }
     } catch (error) {
-      console.error('Login error:', error)
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: "An error occurred during login. Please try again later.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
@@ -86,7 +97,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardDescription>
+            Enter your credentials to access your account
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
@@ -95,7 +108,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="Enter your email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -104,13 +117,17 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link href="/auth/forgot-password" className="text-sm text-teal-600 hover:underline">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-teal-600 hover:underline"
+                >
                   Forgot password?
                 </Link>
               </div>
               <Input
                 id="password"
                 type="password"
+                placeholder="Enter your password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -130,12 +147,19 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button className="w-full bg-teal-600 hover:bg-teal-700" type="submit" disabled={isLoading}>
+            <Button
+              className="w-full bg-teal-600 hover:bg-teal-700"
+              type="submit"
+              disabled={isLoading}
+            >
               {isLoading ? "Logging in..." : "Login"}
             </Button>
             <div className="text-center text-sm">
               Don't have an account?{" "}
-              <Link href="/auth/register" className="text-teal-600 hover:underline">
+              <Link
+                href="/auth/register"
+                className="text-teal-600 hover:underline"
+              >
                 Register
               </Link>
             </div>
@@ -151,5 +175,5 @@ export default function LoginPage() {
         <p>Patient: patient@example.com / password123</p>
       </div>
     </div>
-  )
+  );
 }

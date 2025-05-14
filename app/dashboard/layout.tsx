@@ -1,3 +1,5 @@
+"use client";
+
 import type React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,12 +19,27 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  // Create avatar fallback from first letters of user's name
+  const avatarFallback = user
+    ? `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`
+    : "UN";
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-white px-4 md:px-6">
@@ -123,7 +140,11 @@ export default function DashboardLayout({
                 </Link>
               </nav>
               <div className="mt-auto border-t p-4">
-                <Button variant="ghost" className="w-full justify-start gap-2">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2"
+                  onClick={handleLogout}
+                >
                   <LogOut className="h-4 w-4" />
                   Logout
                 </Button>
@@ -139,13 +160,31 @@ export default function DashboardLayout({
         </div>
         <div className="ml-auto flex items-center gap-4">
           <Avatar>
-            <AvatarImage src="/placeholder-user.jpg" alt="User" />
-            <AvatarFallback>DR</AvatarFallback>
+            <AvatarImage
+              src="/placeholder-user.jpg"
+              alt={user?.firstName || "User"}
+            />
+            <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
           <div className="hidden md:block">
-            <div className="text-sm font-medium">Dr. Rashid</div>
-            <div className="text-xs text-gray-500">Cardiologist</div>
+            <div className="text-sm font-medium">
+              {user ? `${user.firstName} ${user.lastName}` : "User"}
+            </div>
+            <div className="text-xs text-gray-500">
+              {user?.role === "doctor"
+                ? user.specialty || "Doctor"
+                : user?.role || ""}
+            </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="hidden md:inline-flex"
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="sr-only">Logout</span>
+          </Button>
         </div>
       </header>
       <div className="flex flex-1">
@@ -199,6 +238,16 @@ export default function DashboardLayout({
                 Document Scanner
               </Button>
             </Link>
+            <div className="mt-auto pt-4">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
           </nav>
         </aside>
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>

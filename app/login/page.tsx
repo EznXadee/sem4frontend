@@ -1,154 +1,164 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Shield } from "lucide-react"
-import { toast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import { useAuth } from "../context/AuthContext"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import { useAuth } from "../context/AuthContext";
 
 // API base URL
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '')
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+).replace(/\/$/, "");
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
-  const [error, setError] = useState("")
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const router = useRouter()
-  
-  const { login, loading } = useAuth()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const router = useRouter();
+
+  const { login, loading } = useAuth();
 
   const findPatientId = async (user, token) => {
     try {
       // Try to get patientId from user object first
       if (user.patientId) {
-        console.log('Patient ID from user object:', user.patientId)
-        return user.patientId
+        console.log("Patient ID from user object:", user.patientId);
+        return user.patientId;
       }
 
       // Try to get it from user profile
       const userResponse = await fetch(`${API_URL}/api/auth/me`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
       if (userResponse.ok) {
-        const userData = await userResponse.json()
+        const userData = await userResponse.json();
         if (userData.patientId) {
-          console.log('Patient ID from user profile:', userData.patientId)
-          return userData.patientId
+          console.log("Patient ID from user profile:", userData.patientId);
+          return userData.patientId;
         }
       }
 
       // Query all patients to find by email
       const patientsResponse = await fetch(`${API_URL}/api/patients`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (patientsResponse.ok) {
-        const patientsData = await patientsResponse.json()
-        console.log(`Found ${patientsData.length} patients in database`)
-        
-        const userPatient = patientsData.find(p => 
-          p.email === user.email || 
-          (p.user && p.user.email === user.email)
-        )
+        const patientsData = await patientsResponse.json();
+        console.log(`Found ${patientsData.length} patients in database`);
+
+        const userPatient = patientsData.find(
+          (p) =>
+            p.email === user.email || (p.user && p.user.email === user.email)
+        );
 
         if (userPatient) {
-          const patientId = userPatient.patientId || userPatient.id
-          console.log('Found patient ID:', patientId)
-          
+          const patientId = userPatient.patientId || userPatient.id;
+          console.log("Found patient ID:", patientId);
+
           // Save for future use
-          localStorage.setItem('patientId', patientId)
-          return patientId
+          localStorage.setItem("patientId", patientId);
+          return patientId;
         }
       }
-      
-      return null
+
+      return null;
     } catch (error) {
-      console.error('Error finding patient ID:', error)
-      return null
+      console.error("Error finding patient ID:", error);
+      return null;
     }
-  }
+  };
 
   const handleLogin = async (e) => {
-    e.preventDefault()
-    setError("")
-    setIsLoggingIn(true)
+    e.preventDefault();
+    setError("");
+    setIsLoggingIn(true);
 
     try {
-      console.log('=== Starting Login Process ===')
-      
+      console.log("=== Starting Login Process ===");
+
       // Step 1: Authenticate user
-      const result = await login(email, password)
-      console.log('Login result:', result)
+      const result = await login(email, password);
+      console.log("Login result:", result);
 
       if (result.success) {
         toast({
           title: "Login Successful",
           description: `Welcome back, ${result.user.firstName}!`,
-        })
+        });
 
-        const token = result.token || localStorage.getItem('token')
-        console.log('Token available:', !!token)
+        const token = result.token || localStorage.getItem("token");
+        console.log("Token available:", !!token);
 
         // Redirect based on user role
         if (result.user.role === "doctor" || result.user.role === "admin") {
-          console.log('Redirecting to dashboard')
-          router.push("/dashboard")
+          console.log("Redirecting to dashboard");
+          router.push("/dashboard");
         } else if (result.user.role === "patient") {
-          console.log('Finding patient ID for patient role')
-          
+          console.log("Finding patient ID for patient role");
+
           // Step 2: Find patient ID
-          const patientId = await findPatientId(result.user, token)
-          
+          const patientId = await findPatientId(result.user, token);
+
           if (patientId) {
-            console.log('Redirecting to patient portal with ID:', patientId)
-            router.push(`/patient-portal/${patientId}`)
+            console.log("Redirecting to patient portal with ID:", patientId);
+            router.push(`/patient-portal/${patientId}`);
           } else {
-            console.log('No patient ID found')
+            console.log("No patient ID found");
             toast({
               title: "Warning",
               description: "Patient profile not found. Please contact support.",
-              variant: "destructive"
-            })
+              variant: "destructive",
+            });
             // Redirect to base portal where user can create profile
-            router.push(`/patient-portal`)
+            router.push(`/patient-portal`);
           }
         }
       } else {
-        setError(result.error)
+        setError(result.error);
         toast({
           title: "Login Failed",
           description: result.error,
           variant: "destructive",
-        })
+        });
       }
     } catch (error) {
-      console.error('Login error:', error)
-      const errorMessage = "An error occurred during login. Please try again later."
-      setError(errorMessage)
+      console.error("Login error:", error);
+      const errorMessage =
+        "An error occurred during login. Please try again later.";
+      setError(errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoggingIn(false)
+      setIsLoggingIn(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
@@ -161,7 +171,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardDescription>
+            Enter your credentials to access your account
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
@@ -175,7 +187,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="Enter your email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -184,7 +196,10 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link href="/forgot-password" className="text-sm text-teal-600 hover:underline">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-teal-600 hover:underline"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -192,6 +207,7 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 required
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -210,9 +226,9 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button 
-              className="w-full bg-teal-600 hover:bg-teal-700" 
-              type="submit" 
+            <Button
+              className="w-full bg-teal-600 hover:bg-teal-700"
+              type="submit"
               disabled={loading || isLoggingIn}
             >
               {isLoggingIn ? "Logging in..." : loading ? "Loading..." : "Login"}
@@ -227,5 +243,5 @@ export default function LoginPage() {
         </form>
       </Card>
     </div>
-  )
+  );
 }
