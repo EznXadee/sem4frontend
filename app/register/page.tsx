@@ -211,14 +211,7 @@ export default function RegisterPage() {
             description: `Welcome to SehatNama, ${formData.firstName}! Your patient profile has been created.`,
           });
 
-          // Wait for toast before redirecting
-          setTimeout(() => {
-            console.log(
-              "Redirecting to:",
-              `/patient-portal/${patientResult.id}`
-            );
-            router.push(`/patient-portal/${patientResult.id}`);
-          }, 1000);
+          router.push("/login");
         } else {
           throw new Error("Patient ID not received from server");
         }
