@@ -41,10 +41,7 @@ export default function RegisterPage() {
     role: "",
     specialty: "",
     // Additional patient fields
-    age: "",
-    gender: "",
-    bloodGroup: "",
-    contact: "",
+    patientId: "",
   });
   const [error, setError] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -107,14 +104,8 @@ export default function RegisterPage() {
       return false;
     }
 
-    if (
-      formData.role === "patient" &&
-      (!formData.age ||
-        !formData.gender ||
-        !formData.bloodGroup ||
-        !formData.contact)
-    ) {
-      setError("All patient information fields are required");
+    if (formData.role === "patient" && !formData.patientId) {
+      setError("Patient ID is required");
       return false;
     }
 
@@ -122,10 +113,9 @@ export default function RegisterPage() {
     return true;
   };
 
-  const createPatientProfile = async (user: any, token: any) => {
+  const createPatientProfile = async () => {
     try {
       console.log("=== Starting Patient Creation ===");
-      console.log("Token:", token ? "Present" : "Missing");
       console.log("API URL:", API_URL);
 
       const patientData = {
@@ -133,10 +123,11 @@ export default function RegisterPage() {
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        age: parseInt(formData.age),
-        gender: formData.gender,
-        bloodGroup: formData.bloodGroup,
-        contact: formData.contact,
+        patientId: formData.patientId,
+        age: 0,
+        gender: "",
+        bloodGroup: "",
+        contact: "",
         address: "",
         emergencyContact: "",
         condition: "",
@@ -148,10 +139,9 @@ export default function RegisterPage() {
         JSON.stringify(patientData, null, 2)
       );
 
-      const patientResponse = await fetch(`${API_URL}/api/patients`, {
+      const patientResponse = await fetch(`${API_URL}/api/patients/register`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(patientData),
@@ -206,68 +196,56 @@ export default function RegisterPage() {
         role: formData.role,
       });
 
-      // Step 1: Register the user
-      const result = await register(formData);
-      console.log("Registration result:", result);
+      // User registration flow differs based on role
+      if (formData.role === "patient") {
+        // Then create the patient profile
+        const patientResult = await createPatientProfile();
 
-      if (result.success) {
-        console.log("User registration successful");
+        // Store patient ID and redirect
+        if (patientResult.id) {
+          localStorage.setItem("patientId", patientResult.id);
+          console.log("Stored patient ID:", patientResult.id);
 
-        // Step 2: For patients, create patient profile
-        if (result.user.role === "patient") {
-          const token = result.token || localStorage.getItem("token");
-          console.log(
-            "Creating patient profile with token:",
-            token ? "Present" : "Missing"
-          );
+          toast({
+            title: "Registration Successful",
+            description: `Welcome to SehatNama, ${formData.firstName}! Your patient profile has been created.`,
+          });
 
-          if (!token) {
-            throw new Error("No authentication token available");
-          }
-
-          const patientResult = await createPatientProfile(result.user, token);
-
-          // Step 3: Store patient ID and redirect
-          if (patientResult.id) {
-            localStorage.setItem("patientId", patientResult.id);
-            console.log("Stored patient ID:", patientResult.id);
-
-            toast({
-              title: "Registration Successful",
-              description: `Welcome to SehatNama, ${result.user.firstName}! Your patient profile has been created.`,
-            });
-
-            // Wait for toast before redirecting
-            setTimeout(() => {
-              console.log(
-                "Redirecting to:",
-                `/patient-portal/${patientResult.id}`
-              );
-              router.push(`/patient-portal/${patientResult.id}`);
-            }, 1000);
-          } else {
-            throw new Error("Patient ID not received from server");
-          }
+          // Wait for toast before redirecting
+          setTimeout(() => {
+            console.log(
+              "Redirecting to:",
+              `/patient-portal/${patientResult.id}`
+            );
+            router.push(`/patient-portal/${patientResult.id}`);
+          }, 1000);
         } else {
-          // Non-patient user - redirect to dashboard
+          throw new Error("Patient ID not received from server");
+        }
+      } else {
+        // For doctors and admins, use the register function only
+        const result = await register(formData);
+        console.log("Registration result:", result);
+
+        if (result.success) {
+          console.log("User registration successful");
+
           toast({
             title: "Registration Successful",
             description: `Welcome to SehatNama, ${result.user.firstName}!`,
           });
 
           setTimeout(() => {
-            if (result.user.role === "doctor" || result.user.role === "admin") {
-              router.push("/dashboard");
-            }
+            router.push("/dashboard");
           }, 1000);
+        } else {
+          setError(result.error);
+          toast({
+            title: "Registration Failed",
+            description: result.error,
+            variant: "destructive",
+          });
         }
-      } else {
-        setError(result.error);
-        toast({
-          title: "Registration Failed",
-          description: result.error,
-          variant: "destructive",
-        });
       }
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -359,6 +337,7 @@ export default function RegisterPage() {
                 id="confirmPassword"
                 type="password"
                 required
+                placeholder="Confirm your password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
               />
@@ -389,71 +368,16 @@ export default function RegisterPage() {
               </div>
             )}
             {showPatientFields && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    placeholder="30"
-                    required
-                    min="0"
-                    max="120"
-                    value={formData.age}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, gender: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bloodGroup">Blood Group</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, bloodGroup: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select blood group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="AB+">AB+</SelectItem>
-                      <SelectItem value="AB-">AB-</SelectItem>
-                      <SelectItem value="O+">O+</SelectItem>
-                      <SelectItem value="O-">O-</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact">Contact Number</Label>
-                  <Input
-                    id="contact"
-                    type="tel"
-                    placeholder="+1234567890"
-                    required
-                    value={formData.contact}
-                    onChange={handleChange}
-                  />
-                </div>
-              </>
+              <div className="space-y-2">
+                <Label htmlFor="patientId">Patient ID</Label>
+                <Input
+                  id="patientId"
+                  placeholder="P-123"
+                  required
+                  value={formData.patientId}
+                  onChange={handleChange}
+                />
+              </div>
             )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
