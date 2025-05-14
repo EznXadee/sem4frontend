@@ -197,7 +197,7 @@ export default function LabReportsPage() {
       report.testType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSearchChange = (e) => {
+  const handleSearchChange = (e: any) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
@@ -216,16 +216,16 @@ export default function LabReportsPage() {
     ]);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleResultChange = (index, field, value) => {
-    const updatedResults = [...results];
+  const handleResultChange = (index: number, field: string, value: any) => {
+    const updatedResults: any = [...results];
     updatedResults[index][field] = value;
     setResults(updatedResults);
   };
@@ -237,7 +237,7 @@ export default function LabReportsPage() {
     ]);
   };
 
-  const removeResult = (index) => {
+  const removeResult = (index: any) => {
     const updatedResults = results.filter((_, i) => i !== index);
     setResults(updatedResults);
   };

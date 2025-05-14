@@ -56,7 +56,7 @@ export default function RegisterPage() {
   const [showSpecialty, setShowSpecialty] = useState(false);
   const [showPatientFields, setShowPatientFields] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e: any) => {
     const { id, value } = e.target;
     setFormData({
       ...formData,
@@ -64,7 +64,7 @@ export default function RegisterPage() {
     });
   };
 
-  const handleRoleChange = (value) => {
+  const handleRoleChange = (value: any) => {
     setFormData({
       ...formData,
       role: value,
@@ -73,7 +73,7 @@ export default function RegisterPage() {
     setShowPatientFields(value === "patient");
   };
 
-  const handleSpecialtyChange = (e) => {
+  const handleSpecialtyChange = (e: any) => {
     setFormData({
       ...formData,
       specialty: e.target.value,
@@ -122,7 +122,7 @@ export default function RegisterPage() {
     return true;
   };
 
-  const createPatientProfile = async (user, token) => {
+  const createPatientProfile = async (user: any, token: any) => {
     try {
       console.log("=== Starting Patient Creation ===");
       console.log("Token:", token ? "Present" : "Missing");
@@ -188,7 +188,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -269,7 +269,7 @@ export default function RegisterPage() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
       const errorMessage =
         error.message ||

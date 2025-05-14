@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   const { login, loading } = useAuth();
 
-  const findPatientId = async (user, token) => {
+  const findPatientId = async (user: any, token: any) => {
     try {
       // Try to get patientId from user object first
       if (user.patientId) {
@@ -71,7 +71,7 @@ export default function LoginPage() {
         console.log(`Found ${patientsData.length} patients in database`);
 
         const userPatient = patientsData.find(
-          (p) =>
+          (p: any) =>
             p.email === user.email || (p.user && p.user.email === user.email)
         );
 
@@ -92,7 +92,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: any) => {
     e.preventDefault();
     setError("");
     setIsLoggingIn(true);

@@ -22,6 +22,17 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 
+// Define user type based on AuthContext
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  patientId?: string;
+  specialty?: string;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -32,10 +43,12 @@ export default function DashboardLayout({
 
   // Create avatar fallback from first letters of user's name
   const avatarFallback = user
-    ? `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`
+    ? `${(user as User).firstName?.charAt(0) || ""}${
+        (user as User).lastName?.charAt(0) || ""
+      }`
     : "UN";
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     logout();
     router.push("/");
   };
@@ -162,18 +175,22 @@ export default function DashboardLayout({
           <Avatar>
             <AvatarImage
               src="/placeholder-user.jpg"
-              alt={user?.firstName || "User"}
+              alt={user ? (user as User).firstName : "User"}
             />
             <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
           <div className="hidden md:block">
             <div className="text-sm font-medium">
-              {user ? `${user.firstName} ${user.lastName}` : "User"}
+              {user
+                ? `${(user as User).firstName} ${(user as User).lastName}`
+                : "User"}
             </div>
             <div className="text-xs text-gray-500">
-              {user?.role === "doctor"
-                ? user.specialty || "Doctor"
-                : user?.role || ""}
+              {user && (user as User).role === "doctor"
+                ? (user as User).specialty || "Doctor"
+                : user
+                ? (user as User).role
+                : ""}
             </div>
           </div>
           <Button
